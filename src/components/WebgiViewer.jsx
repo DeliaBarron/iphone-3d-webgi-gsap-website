@@ -13,10 +13,19 @@ import {
 } from "webgi";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { scrollAnimation } from '../lib/scroll-animation';
+
+gsap.registerPlugin(ScrollTrigger)
 
 const WebgiViewer = () => {
     const canvasRef = useRef(null)
-
+    //add to the cache the scrollAnimation everytime it has to render
+    const memorizedScrollAnimation = useCallback( (position, target, onUpdate) => {
+            if(position && target && onUpdate){
+                scrollAnimation(position, target, onUpdate)
+            }
+        },[]//to execute only once
+    )
     //initialize 3D model and use it
     const setupViewer = useCallback(async () => {
         // Initialize the viewer
@@ -58,12 +67,19 @@ const WebgiViewer = () => {
         //add event listener to the viewer so it will update the position of the 'camera' 
         //if update is needed 
         let needsUpdate = true
+        const onUpdate = ()=>{
+            //we're saying the camera and the viewer need to be updated
+            needsUpdate=true
+            viewer.setDirty()
+        }
         viewer.addEventListener('preFrame', () => {
             if(needsUpdate){
                 camera.positionTargetUpdated(true)
                 needsUpdate = false
             }
         })
+        memorizedScrollAnimation(position, target, onUpdate) //passing the camera.position && .target we declare as variables
+
 
     }, []);//empty dependencies cause we dont want to recreate this funct
     useEffect(()=>{
